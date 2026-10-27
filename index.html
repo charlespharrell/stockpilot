@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="StockPilot is a local-first business management dashboard for tracking inventory, sales, expenses and reports."
+    />
+    <meta name="theme-color" content="#4169E1" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('stockpilot:settings')
+          var theme = stored ? JSON.parse(stored).theme : 'light'
+          var isDark = theme === 'dark'
+          var root = document.documentElement
+          root.classList.toggle('dark', isDark)
+          root.style.colorScheme = isDark ? 'dark' : 'light'
+          var themeColor = document.querySelector('meta[name="theme-color"]')
+          if (themeColor) {
+            themeColor.setAttribute('content', isDark ? '#0a1120' : '#4169e1')
+          }
+        } catch (error) {
+          document.documentElement.classList.remove('dark')
+          document.documentElement.style.colorScheme = 'light'
+        }
+      })()
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>StockPilot — Business Management Dashboard</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

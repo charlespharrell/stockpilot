@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+
+  --color-brand-50: #eef2fe;
+  --color-brand-100: #dde5fd;
+  --color-brand-200: #c4d2fb;
+  --color-brand-500: #4169e1;
+  --color-brand-600: #3458c5;
+  --color-brand-700: #2b49a4;
+  --color-brand: #4169e1;
+  --color-brand-fill: #4169e1;
+
+  --color-canvas: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-ink: #172033;
+  --color-ink-muted: #5f6b80;
+  --color-line: #e2e7f1;
+
+  --color-warning-50: #fff8e7;
+  --color-warning-200: #f6dfa2;
+  --color-warning-700: #94600a;
+
+  --shadow-card: 0 1px 2px rgb(23 32 51 / 0.04),
+    0 18px 40px -30px rgb(23 32 51 / 0.28);
+  --shadow-float: 0 24px 60px -24px rgb(23 32 51 / 0.35);
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --color-brand-50: #172445;
+  --color-brand-100: #20325e;
+  --color-brand-200: #2f4a86;
+  --color-brand-500: #7f9bff;
+  --color-brand-600: #3458c5;
+  --color-brand-700: #c3d0ff;
+  --color-brand: #8aa4ff;
+
+  --color-canvas: #0a1120;
+  --color-surface: #111a2e;
+  --color-ink: #e7ecf7;
+  --color-ink-muted: #9aa8c0;
+  --color-line: #26344d;
+
+  --color-warning-50: #2b2112;
+  --color-warning-200: #5a461c;
+  --color-warning-700: #f5c86a;
+
+  --color-amber-50: #2b2112;
+  --color-amber-700: #f5c86a;
+
+  --color-emerald-50: #10261d;
+  --color-emerald-700: #86dfb7;
+
+  --color-rose-50: #2d1720;
+  --color-rose-200: #5a2838;
+  --color-rose-300: #7d3549;
+  --color-rose-600: #fda4b8;
+  --color-rose-700: #ffd1dc;
+
+  --color-slate-50: #1b2434;
+  --color-slate-700: #cbd5e1;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35),
+    0 18px 40px -30px rgb(0 0 0 / 0.7);
+  --shadow-float: 0 24px 60px -24px rgb(0 0 0 / 0.75);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+  }
+
+  body {
+    min-width: 320px;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  dialog::backdrop {
+    background-color: rgb(23 32 51 / 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  body:has(dialog[open]) {
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
