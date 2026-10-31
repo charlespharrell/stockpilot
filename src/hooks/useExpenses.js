@@ -20,6 +20,12 @@ function updateGlobalExpenses(nextExpenses) {
   notifyListeners()
 }
 
+export function reloadExpensesFromStorage() {
+  const fresh = loadExpenses()
+  updateGlobalExpenses(fresh)
+  return fresh
+}
+
 export function useExpenses() {
   const [expenses, setExpenses] = useState(globalExpenses)
 

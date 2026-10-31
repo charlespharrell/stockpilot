@@ -22,6 +22,12 @@ function updateGlobalProducts(nextProducts) {
   notifyListeners()
 }
 
+export function reloadInventoryFromStorage() {
+  const fresh = loadProducts()
+  updateGlobalProducts(fresh)
+  return fresh
+}
+
 export function useInventory() {
   const { settings } = useSettings()
   const alertThreshold = settings.lowStockThreshold

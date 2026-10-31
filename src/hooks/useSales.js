@@ -29,6 +29,12 @@ function updateGlobalSales(nextSales) {
   notifyListeners()
 }
 
+export function reloadSalesFromStorage() {
+  const fresh = loadSales()
+  updateGlobalSales(fresh)
+  return fresh
+}
+
 export function useSales() {
   const [sales, setSales] = useState(globalSales)
   const { products, applyPersistedProducts } = useInventory()

@@ -16,16 +16,16 @@ import Input from '../../components/ui/Input'
 import PageHeader from '../../components/ui/PageHeader'
 import Textarea from '../../components/ui/Textarea'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { reloadExpensesFromStorage } from '../../hooks/useExpenses'
+import { reloadInventoryFromStorage } from '../../hooks/useInventory'
+import { reloadSalesFromStorage } from '../../hooks/useSales'
 import { useSettings } from '../../hooks/useSettings'
 import { cn } from '../../utils/cn'
-import { resetAndLoadDemoData } from '../../utils/resetDemoData'
+import { loadDemoDataIfEmpty } from '../../utils/resetDemoData'
 import {
   validateBusinessProfile,
   validateLowStockThreshold,
 } from './settingsService'
-
-const demoResetEnabled =
-  import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_RESET === 'true'
 
 const themeOptions = [
   {
@@ -73,9 +73,9 @@ export default function SettingsPage() {
   )
   const [thresholdError, setThresholdError] = useState('')
   const [thresholdMessage, setThresholdMessage] = useState('')
-  const [isResettingDemo, setIsResettingDemo] = useState(false)
-  const [demoResetMessage, setDemoResetMessage] = useState('')
-  const [demoResetError, setDemoResetError] = useState('')
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false)
+  const [demoMessage, setDemoMessage] = useState('')
+  const [demoError, setDemoError] = useState('')
 
   function updateProfileField(field, value) {
     setProfile((current) => ({ ...current, [field]: value }))
@@ -137,38 +137,40 @@ export default function SettingsPage() {
     setThresholdMessage('Low-stock alert level saved.')
   }
 
-  function handleDemoReset() {
-    if (isResettingDemo) {
+  function handleLoadDemoData() {
+    if (isLoadingDemo) {
       return
     }
 
     const confirmed = window.confirm(
-      'Load Demo Data\n\nThis will REPLACE your current inventory, sales, and expenses with generated demo data. This cannot be undone.\n\nContinue?',
+      'Load demo data?\n\nThis adds 50 demo products, related sales, and 10 expenses only when inventory, sales, and expenses are all empty. Existing records will never be overwritten.\n\nContinue?',
     )
 
     if (!confirmed) {
       return
     }
 
-    setIsResettingDemo(true)
-    setDemoResetMessage('')
-    setDemoResetError('')
+    setIsLoadingDemo(true)
+    setDemoMessage('')
+    setDemoError('')
 
     try {
-      const result = resetAndLoadDemoData()
+      const result = loadDemoDataIfEmpty()
 
       if (result.success) {
-        setDemoResetMessage(
-          `Demo data loaded: ${result.counts.products} products, ${result.counts.sales} sales, ${result.counts.expenses} expenses. Reloading...`,
+        reloadInventoryFromStorage()
+        reloadSalesFromStorage()
+        reloadExpensesFromStorage()
+        setDemoMessage(
+          `Demo data loaded: ${result.counts.products} products, ${result.counts.sales} sales, ${result.counts.expenses} expenses.`,
         )
-        setTimeout(() => window.location.reload(), 1000)
       } else {
-        setDemoResetError(result.error || 'Demo data could not be loaded.')
+        setDemoError(result.message || 'Demo data could not be loaded.')
       }
     } catch (error) {
-      setDemoResetError(`Demo data could not be loaded: ${error.message}`)
+      setDemoError(`Demo data could not be loaded: ${error.message}`)
     } finally {
-      setIsResettingDemo(false)
+      setIsLoadingDemo(false)
     }
   }
 
@@ -399,42 +401,39 @@ export default function SettingsPage() {
             it belongs in a separate flow rather than this settings form.
           </p>
 
-          {demoResetEnabled ? (
-            <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-700">
-                Development tool
-              </p>
-              <p className="mt-1.5 max-w-3xl text-xs leading-5 text-rose-700">
-                Replace all inventory, sales, and expenses with generated demo
-                records. This control is only available in development or when
-                the demo-reset environment flag is explicitly enabled.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleDemoReset}
-                  disabled={isResettingDemo}
-                  className="border-rose-300 text-rose-700"
+          <div className="mt-5 rounded-xl border border-line bg-canvas/60 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">
+              Demo workspace
+            </p>
+            <p className="mt-1.5 max-w-3xl text-xs leading-5 text-ink-muted">
+              Load 50 sample products, 30 days of related sales, and 10
+              expenses. This action is only available when inventory, sales, and
+              expenses are all empty. Existing records are never replaced.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLoadDemoData}
+                disabled={isLoadingDemo}
+              >
+                {isLoadingDemo ? 'Loading demo data...' : 'Load demo data'}
+              </Button>
+              {demoMessage ? (
+                <span
+                  role="status"
+                  className="text-xs font-medium text-emerald-700"
                 >
-                  {isResettingDemo ? 'Loading demo data...' : 'Reset and load demo data'}
-                </Button>
-                {demoResetMessage ? (
-                  <span
-                    role="status"
-                    className="text-xs font-medium text-rose-700"
-                  >
-                    {demoResetMessage}
-                  </span>
-                ) : null}
-              </div>
-              {demoResetError ? (
-                <p role="alert" className="mt-2 text-xs font-medium leading-5 text-rose-700">
-                  {demoResetError}
-                </p>
+                  {demoMessage}
+                </span>
               ) : null}
             </div>
-          ) : null}
+            {demoError ? (
+              <p role="alert" className="mt-2 text-xs font-medium leading-5 text-rose-700">
+                {demoError}
+              </p>
+            ) : null}
+          </div>
         </Card>
       </div>
     </>

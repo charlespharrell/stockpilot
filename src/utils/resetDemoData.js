@@ -25,10 +25,46 @@ const STORAGE_KEYS = [
   EXPENSES_STORAGE_KEY,
 ]
 
-function rollbackSnapshots(snapshots, writtenKeys) {
+function inspectExistingRecords(key) {
+  const snapshot = snapshotStorage(key)
+
+  if (!snapshot.ok) {
+    return {
+      ok: false,
+      snapshot: null,
+      message: `Could not safely read existing ${STORAGE_LABELS[key]} records. Nothing was changed.`,
+    }
+  }
+
+  if (!snapshot.exists) {
+    return { ok: true, snapshot, count: 0 }
+  }
+
+  try {
+    const parsed = JSON.parse(snapshot.raw)
+
+    if (!Array.isArray(parsed)) {
+      return {
+        ok: false,
+        snapshot,
+        message: `Existing ${STORAGE_LABELS[key]} data is not a valid record list. Nothing was changed.`,
+      }
+    }
+
+    return { ok: true, snapshot, count: parsed.length }
+  } catch {
+    return {
+      ok: false,
+      snapshot,
+      message: `Existing ${STORAGE_LABELS[key]} data could not be read. Nothing was changed.`,
+    }
+  }
+}
+
+function rollbackSnapshots(snapshots) {
   const failures = []
 
-  for (const key of writtenKeys) {
+  for (const key of STORAGE_KEYS) {
     if (!restoreStorageSnapshot(key, snapshots[key])) {
       failures.push(STORAGE_LABELS[key])
     }
@@ -37,7 +73,7 @@ function rollbackSnapshots(snapshots, writtenKeys) {
   return failures
 }
 
-export function resetAndLoadDemoData() {
+export function loadDemoDataIfEmpty() {
   let products
   let sales
   let expenses
@@ -51,23 +87,40 @@ export function resetAndLoadDemoData() {
   } catch (error) {
     return {
       success: false,
-      error: `Could not prepare demo data: ${error.message}`,
+      reason: 'generation-failed',
+      message: `Could not prepare demo data: ${error.message}`,
     }
   }
 
   const snapshots = {}
+  const existingCounts = {}
 
   for (const key of STORAGE_KEYS) {
-    const snapshot = snapshotStorage(key)
+    const inspection = inspectExistingRecords(key)
 
-    if (!snapshot.ok) {
+    if (!inspection.ok) {
       return {
         success: false,
-        error: `Could not read existing ${STORAGE_LABELS[key]} records, so no data was changed.`,
+        reason: 'unreadable-existing-data',
+        message: inspection.message,
       }
     }
 
-    snapshots[key] = snapshot
+    snapshots[key] = inspection.snapshot
+    existingCounts[STORAGE_LABELS[key]] = inspection.count
+  }
+
+  const hasExistingRecords = STORAGE_KEYS.some(
+    (key) => existingCounts[STORAGE_LABELS[key]] > 0,
+  )
+
+  if (hasExistingRecords) {
+    return {
+      success: false,
+      reason: 'existing-data',
+      message: `Demo data was not loaded because existing records were found (inventory: ${existingCounts.inventory}, sales: ${existingCounts.sales}, expenses: ${existingCounts.expenses}). Existing data was not overwritten.`,
+      counts: existingCounts,
+    }
   }
 
   const writes = [
@@ -75,17 +128,17 @@ export function resetAndLoadDemoData() {
     { key: SALES_STORAGE_KEY, value: sales },
     { key: EXPENSES_STORAGE_KEY, value: expenses },
   ]
-  const writtenKeys = []
 
   for (const write of writes) {
     if (!writeStorage(write.key, write.value)) {
-      const rollbackFailures = rollbackSnapshots(snapshots, writtenKeys)
+      const rollbackFailures = rollbackSnapshots(snapshots)
       const failedLabel = STORAGE_LABELS[write.key]
 
       if (rollbackFailures.length > 0) {
         return {
           success: false,
-          error: `Demo reset failed while writing ${failedLabel} data, and rollback failed for ${rollbackFailures.join(
+          reason: 'write-failed',
+          message: `Demo data failed while writing ${failedLabel} records, and rollback failed for ${rollbackFailures.join(
             ', ',
           )}. Reload and review your records before continuing.`,
           failedKey: write.key,
@@ -95,13 +148,12 @@ export function resetAndLoadDemoData() {
 
       return {
         success: false,
-        error: `Demo reset failed while writing ${failedLabel} data. Previous records were restored.`,
+        reason: 'write-failed',
+        message: `Demo data failed while writing ${failedLabel} records. Existing records were restored.`,
         failedKey: write.key,
         rollbackFailures: [],
       }
     }
-
-    writtenKeys.push(write.key)
   }
 
   return {
